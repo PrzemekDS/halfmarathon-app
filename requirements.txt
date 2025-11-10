@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+plotly
+joblib
+boto3
+python-dotenv
+scikit-learn
+openai>=1.50.0
+langfuse
