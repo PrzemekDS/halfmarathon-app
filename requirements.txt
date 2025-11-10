@@ -1,10 +1,13 @@
-streamlit==1.37.1
-pandas==2.2.2
-numpy==1.26.4
-plotly==5.22.0
-joblib==1.4.2
-boto3==1.34.140
-python-dotenv==1.0.1
-scikit-learn==1.5.1
+# Kluczowe zależności – bez sztywnego przypięcia wersji
+streamlit
+pandas
+numpy
+plotly
+joblib
+boto3
+python-dotenv
+scikit-learn
+
+# Dwie zależności z wymaganą wersją minimalną (ze względu na używane funkcje)
 openai>=1.55.0
 langfuse>=2.30.0
