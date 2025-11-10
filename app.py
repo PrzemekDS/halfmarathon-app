@@ -105,18 +105,41 @@ def load_model_from_spaces():
     """
     Pobiera i wczyta model.pkl z DigitalOcean Spaces.
     """
+    import sys
+    
+    # DEBUG - loguj do stderr (pojawi się w Runtime Logs)
+    print("=" * 60, file=sys.stderr)
+    print("🔍 DEBUG: Próba załadowania modelu z DO Spaces", file=sys.stderr)
+    
     try:
         key = os.getenv("DO_SPACES_KEY")
         secret = os.getenv("DO_SPACES_SECRET")
         region = os.getenv("DO_SPACES_REGION", "fra1")
         endpoint = os.getenv("DO_SPACES_ENDPOINT", "https://fra1.digitaloceanspaces.com")
         bucket = os.getenv("DO_SPACES_BUCKET")
-        model_key = os.getenv("DO_SPACES_MODEL_KEY", "trained_model.pkl")
+        model_key = os.getenv("DO_SPACES_MODEL_KEY", "model.pkl")
+        
+        # Loguj wartości (maskuj secret)
+        print(f"DO_SPACES_KEY: {key[:10] + '...' if key else 'BRAK'}", file=sys.stderr)
+        print(f"DO_SPACES_SECRET: {'Ustawiony (' + secret[:5] + '...)' if secret else 'BRAK'}", file=sys.stderr)
+        print(f"DO_SPACES_REGION: {region}", file=sys.stderr)
+        print(f"DO_SPACES_ENDPOINT: {endpoint}", file=sys.stderr)
+        print(f"DO_SPACES_BUCKET: {bucket}", file=sys.stderr)
+        print(f"DO_SPACES_MODEL_KEY: {model_key}", file=sys.stderr)
 
         if not all([key, secret, bucket]):
+            missing = []
+            if not key: missing.append("DO_SPACES_KEY")
+            if not secret: missing.append("DO_SPACES_SECRET")
+            if not bucket: missing.append("DO_SPACES_BUCKET")
+            
+            error_msg = f"❌ Brakujące zmienne: {', '.join(missing)}"
+            print(error_msg, file=sys.stderr)
             st.info("ℹ️ Nie ustawiono pełnych zmiennych dla DO Spaces – użyję heurystyki.")
             return None
 
+        print("✅ Wszystkie zmienne ustawione, łączę z S3...", file=sys.stderr)
+        
         s3 = boto3.client(
             "s3",
             region_name=region,
@@ -124,15 +147,34 @@ def load_model_from_spaces():
             aws_access_key_id=key,
             aws_secret_access_key=secret,
         )
+        
+        print(f"✅ Klient S3 utworzony, pobieram obiekt: {bucket}/{model_key}", file=sys.stderr)
 
         obj = s3.get_object(Bucket=bucket, Key=model_key)
+        
+        print(f"✅ Obiekt pobrany, wielkość: {obj['ContentLength']} bajtów", file=sys.stderr)
+        
         byts = obj["Body"].read()
+        
+        print(f"✅ Dane odczytane ({len(byts)} bajtów), ładuję model...", file=sys.stderr)
+        
         model = joblib.load(io.BytesIO(byts))
+        
+        print(f"✅ Model załadowany! Typ: {type(model)}", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        
         st.success("✅ Model ML załadowany z DigitalOcean Spaces")
         return model
 
     except Exception as e:
+        print(f"❌ BŁĄD: {type(e).__name__}: {str(e)}", file=sys.stderr)
+        print(f"❌ Traceback:", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        
         st.warning(f"⚠️ Nie udało się pobrać modelu z DO Spaces (użyję heurystyki)")
+        st.error(f"Błąd: {type(e).__name__}: {str(e)}")
         return None
 
 MODEL = load_model_from_spaces()
@@ -313,13 +355,6 @@ def extract_data_fallback(text):
     
     return data
 
-# ====================== RESZTA FUNKCJI (bez zmian) ======================
-# ... (tutaj wklej wszystkie pozostałe funkcje z poprzedniego kodu:
-# get_comparison_data, classify_position, create_comparison_chart, 
-# create_pace_progression_chart, parse_time_to_seconds, format_seconds_to_hms,
-# human_readable_timedelta, heuristic_half_marathon_time, predict_time, 
-# build_splits_dataframe)
-
 # ====================== DANE PORÓWNAWCZE ======================
 def get_comparison_data(gender, age, predicted_time):
     age_groups = {
@@ -496,7 +531,7 @@ def predict_time(gender: str, age: int, pace_seconds: float, five_k_seconds: flo
             sex = 1 if gender == "M" else 0
             X = np.array([[sex, age, pace_seconds]], dtype=float)
             pred_sec = float(MODEL.predict(X)[0])
-            # sanity clamp – na wypadek „dziwnych” wartości modelu
+            # sanity clamp – na wypadek „dziwnych" wartości modelu
             pred_sec = max(3600, min(pred_sec, 5 * 3600))
             return pred_sec
         except Exception as e:
@@ -536,7 +571,7 @@ if llm_submit and user_input:
     if extracted_data:
         st.success("✅ AI pomyślnie przetworzyło tekst!")
         
-        # Wypełnij formularz danymi z LLM - POPRAWIONE!
+        # Wypełnij formularz danymi z LLM
         if extracted_data.get("gender") in ["M", "K"]:
             st.session_state.gender = extracted_data["gender"]
             st.success(f"✅ Płeć ustawiona na: {extracted_data['gender']}")
@@ -682,16 +717,4 @@ if st.session_state.prediction is not None:
     source_cols = st.columns(3)
     with source_cols[0]:
         if MODEL is not None:
-            st.success("🔮 **Źródło predykcji:** Model ML z DigitalOcean Spaces")
-        else:
-            st.info("🔮 **Źródło predykcji:** Heurystyka ekspercka")
-    with source_cols[1]:
-        st.info("🎯 **Dokładność:** ±5 minut (MAE)")
-    with source_cols[2]:
-        if st.session_state.llm_used:
-            st.success("🤖 **Dane wprowadzone przez AI**")
-        else:
-            st.info("📝 **Dane wprowadzone ręcznie**")
-
-st.markdown("---")
-st.caption("🏃 Aplikacja do szacowania czasu półmaratonu | Model ML + AI + Langfuse | Dokładność ±5 min")
+            st.succe
