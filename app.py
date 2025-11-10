@@ -717,4 +717,4 @@ if st.session_state.prediction is not None:
     source_cols = st.columns(3)
     with source_cols[0]:
         if MODEL is not None:
-            st.succe
+            st.success("🔮 **Źródło predykcji:** Model ML z DigitalOcean Spaces")
