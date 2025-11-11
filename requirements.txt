@@ -10,4 +10,4 @@ scikit-learn
 
 # Dwie zależności z wymaganą wersją minimalną (ze względu na używane funkcje)
 openai>=1.55.0
-langfuse>=2.30.0
+langfuse==2.50.0
